@@ -1,59 +1,175 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# LaraNotes API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+LaraNotes API is a small, API-only Laravel application built as a **clean, idiomatic reference project**.
 
-## About Laravel
+It demonstrates how I apply the same architectural principles shown in *LaraNote*—Laravel conventions, clear responsibility boundaries, and restraint around abstractions—in an API context.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+This repository is intended to be a **companion reference** to LaraNote, not a progression in complexity.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Purpose
 
-## Learning Laravel
+This project exists to demonstrate:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- Idiomatic Laravel API design
+- Token-based authentication using Laravel Sanctum
+- Policy-driven authorization
+- Form Request–based validation and authorization
+- Clean JSON responses using API Resources
+- Behavior-focused feature and policy tests
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+The goal is correctness and clarity, not feature breadth.
 
-## Laravel Sponsors
+---
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Core Concept
 
-### Premium Partners
+### What is a Note?
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+A **Note** is a user-owned resource representing a short piece of text content.
 
-## Contributing
+A note:
+- belongs to exactly one user
+- has a title and body
+- can be archived
+- is never shared with other users
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+---
 
-## Code of Conduct
+## Ownership & Authorization Rules
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- Every note belongs to exactly one authenticated user
+- Users may only view, update, or archive notes they own
+- Users may never access notes owned by other users
 
-## Security Vulnerabilities
+All ownership and access rules are enforced via **Laravel policies**.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+---
 
-## License
+## Allowed Actions
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+An authenticated user may:
+
+- create a note
+- list their own notes
+- view a single note they own
+- update a note they own
+- archive a note they own
+
+---
+
+## Forbidden Actions
+
+A user may **not**:
+
+- view another user’s notes
+- update another user’s notes
+- archive another user’s notes
+- exceed the maximum allowed number of notes
+
+Authorization failures return `403 Forbidden`.
+
+Validation failures return `422 Unprocessable Entity`.
+
+---
+
+## Note Limits
+
+- A user may create up to a fixed maximum number of notes
+- The limit is enforced at the **authorization layer**
+- Both active and archived notes count toward the limit
+
+Once created, a note always counts toward the limit.
+
+---
+
+## Archiving Behavior
+
+- Archiving is a state change, not deletion
+- Archived notes remain in the database
+- Archived notes are excluded from active listings by default
+- Archiving an already archived note is a no-op
+
+There is no unarchive functionality.
+
+---
+
+## API Design
+
+- All endpoints return JSON
+- All write operations require authentication
+- Authorization is enforced before persistence
+- Resource existence is never leaked to unauthorized users
+
+---
+
+## Data Shape (Conceptual)
+
+A note consists of:
+
+- `id`
+- `title`
+- `body`
+- `archived`
+- `timestamps`
+
+Responses are shaped using **API Resources**.
+
+---
+
+## Architecture Overview
+
+The application follows standard Laravel structure:
+
+Request → Form Request → Controller → Policy → Model → API Resource
+
+Responsibilities:
+
+- **Controllers**: orchestration only
+- **Form Requests**: validation and authorization delegation
+- **Policies**: access rules and limits
+- **Models**: persistence and simple domain behavior
+- **API Resources**: response formatting
+
+No service layer or custom domain abstractions are used.
+
+---
+
+## Testing Strategy
+
+Tests focus on **observable behavior**, not implementation details.
+
+The test suite includes:
+
+- Policy tests for authorization rules
+- Feature tests for API endpoints
+- Authentication and authorization scenarios
+
+---
+
+## Non-Goals
+
+This project intentionally does **not** include:
+
+- shared notes or collaboration
+- roles or permission systems
+- background jobs or queues
+- event-driven architecture
+- complex filtering or querying
+- frontend views
+
+---
+
+## Setup (Optional)
+
+Instructions for local setup will be added once the API surface is complete.
+
+---
+
+## Final Notes
+
+This project favors **clarity over cleverness**.
+
+Any abstraction or structural decision should be justified by actual complexity, not anticipation.
+
