@@ -53,7 +53,6 @@ An authenticated user may:
 
 - create a note
 - list their own notes
-- view a single note they own
 - update a note they own
 - archive a note they own
 
@@ -100,7 +99,7 @@ There is no unarchive functionality.
 - All endpoints return JSON
 - All write operations require authentication
 - Authorization is enforced before persistence
-- Resource existence is never leaked to unauthorized users
+- Unauthorized users never receive access to another user’s data
 
 ---
 
@@ -136,13 +135,24 @@ No service layer or custom domain abstractions are used.
 
 ---
 
+## API Endpoints
+
+Authenticated routes:
+
+- `GET /api/notes` — list active notes
+- `POST /api/notes` — create a note
+- `PATCH /api/notes/{note}` — update a note
+- `POST /api/notes/{note}/archive` — archive a note
+
+---
+
 ## Testing Strategy
 
 Tests focus on **observable behavior**, not implementation details.
 
 The test suite includes:
 
-- Policy tests for authorization rules
+- Policy tests to validate ownership and note limit rules
 - Feature tests for API endpoints
 - Authentication and authorization scenarios
 
