@@ -9,6 +9,8 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/notes', [NoteController::class, 'index']);
     Route::post('/notes', [NoteController::class, 'store']);
-    Route::put('/notes/{note}', [NoteController::class, 'update']);
+    Route::patch('/notes/{note}', [NoteController::class, 'update']);
+    Route::post('/notes/{note}/archive', [NoteController::class, 'archive']);
 });
