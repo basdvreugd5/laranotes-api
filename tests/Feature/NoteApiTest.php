@@ -73,9 +73,42 @@ class NoteApiTest extends TestCase
             ]);
 
         $response
-            ->assertForbidden()
-            ->assertStatus(403);
+            ->assertForbidden();
 
         $this->assertDatabaseCount('notes', Note::MAX_PER_USER);
+    }
+
+    public function test_user_can_update_own_note(): void
+    {
+        $user = User::factory()->create();
+
+        $note = Note::factory()
+            ->for($user)
+            ->create([
+                'title' => 'Original title',
+                'body' => 'Original body',
+            ]);
+
+        $response = $this
+            ->actingAs($user, 'sanctum')
+            ->putJson("/api/notes/{$note->id}", [
+                'title' => 'Updated title',
+                'body' => 'Updated body',
+            ]);
+
+        $response
+            ->assertStatus(200)
+            ->assertJson([
+                'data' => [
+                    'title' => 'Updated title',
+                    'body' => 'Updated body',
+                ],
+            ]);
+
+        $this->assertDatabaseHas('notes', [
+            'id' => $note->id,
+            'title' => 'Updated title',
+            'body' => 'Updated body',
+        ]);
     }
 }
