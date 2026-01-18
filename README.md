@@ -1,6 +1,6 @@
 # LaraNotes API
 
-LaraNotes API is a small, API-only Laravel application built as a **clean, idiomatic reference project**.
+LaraNotes API is a small, API-only Laravel application built as a **clean, idiomatic reference**.
 
 It demonstrates how I apply the same architectural principles shown in *LaraNote*—Laravel conventions, clear responsibility boundaries, and restraint around abstractions—in an API context.
 
@@ -13,7 +13,7 @@ This repository is intended to be a **companion reference** to LaraNote, not a p
 This project exists to demonstrate:
 
 - Idiomatic Laravel API design
-- Token-based authentication using Laravel Sanctum
+- Token-based authentication using Laravel Sanctum (first-party API tokens)
 - Policy-driven authorization
 - Form Request–based validation and authorization
 - Clean JSON responses using API Resources
@@ -31,7 +31,7 @@ A **Note** is a user-owned resource representing a short piece of text content.
 
 A note:
 - belongs to exactly one user
-- has a title and body
+- has a title and optional body
 - can be archived
 - is never shared with other users
 
@@ -68,7 +68,6 @@ A user may **not**:
 - exceed the maximum allowed number of notes
 
 Authorization failures return `403 Forbidden`.
-
 Validation failures return `422 Unprocessable Entity`.
 
 ---
@@ -90,7 +89,7 @@ Once created, a note always counts toward the limit.
 - Archived notes are excluded from active listings by default
 - Archiving an already archived note is a no-op
 
-There is no unarchive functionality.
+There is no unarchive functionality by design.
 
 ---
 
@@ -105,7 +104,7 @@ There is no unarchive functionality.
 
 ## Data Shape (Conceptual)
 
-A note consists of:
+A note is exposed by the API with the following fields:
 
 - `id`
 - `title`
@@ -114,6 +113,22 @@ A note consists of:
 - `timestamps`
 
 Responses are shaped using **API Resources**.
+
+```json
+// GET /api/notes
+{
+    "data": [
+        {
+            "id": 1,
+            "title": "Hello",
+            "body": "World!",
+            "archived": false
+        }
+    ],
+    "links": { ... },
+    "meta": { ... }
+}
+```
 
 ---
 
@@ -146,7 +161,7 @@ Authenticated routes:
 
 ---
 
-## Testing Strategy
+## Testing Philosophy
 
 Tests focus on **observable behavior**, not implementation details.
 
@@ -173,7 +188,17 @@ This project intentionally does **not** include:
 
 ## Setup (Optional)
 
-Instructions for local setup will be added once the API surface is complete.
+Local setup instructions will be added once the API surface stabilizes.
+
+---
+
+## Running Tests
+
+The suite is built with PHPUnit and focuses on behavioral testing.
+
+```bash
+php artisan test
+```
 
 ---
 
