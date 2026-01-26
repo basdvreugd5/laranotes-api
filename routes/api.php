@@ -1,11 +1,12 @@
 <?php
 
 use App\Http\Controllers\NoteController;
+use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/user', function (Request $request) {
-    return $request->user();
+    return new UserResource($request->user());
 })->middleware('auth:sanctum');
 
 Route::middleware('auth:sanctum')->group(function () {
