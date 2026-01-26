@@ -99,6 +99,8 @@ There is no unarchive functionality by design.
 - All write operations require authentication
 - Authorization is enforced before persistence
 - Unauthorized users never receive access to another user’s data
+- Sensitive user attributes (e.g. passwords, tokens) are never exposed
+- All API output is explicitly shaped using Laravel API Resources
 
 ---
 
