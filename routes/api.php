@@ -9,7 +9,7 @@ Route::get('/user', function (Request $request) {
     return new UserResource($request->user());
 })->middleware('auth:sanctum');
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/notes', [NoteController::class, 'index']);
     Route::post('/notes', [NoteController::class, 'store']);
     Route::patch('/notes/{note}', [NoteController::class, 'update']);
