@@ -66,6 +66,33 @@ class Note extends Model
     }
 
     /**
+     * Scope a query to search notes by title or body.
+     */
+    public function scopeSearch(Builder $query, ?string $term): Builder
+    {
+        if (! $term) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($term) {
+            $q->where('title', 'like', "%{$term}%")
+                ->orWhere('body', 'like', "%{$term}%");
+        });
+    }
+
+    /**
+     * Scope a query to filter notes by archived state.
+     */
+    public function scopeArchivedState(Builder $query, ?bool $archived): Builder
+    {
+        if ($archived === null) {
+            return $query;
+        }
+
+        return $query->where('archived', $archived);
+    }
+
+    /**
      * Archive the note.
      */
     public function archive(): void

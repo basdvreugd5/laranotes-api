@@ -23,7 +23,7 @@ class NoteApiTest extends TestCase
             ]);
 
         $response
-            ->assertStatus(201)
+            ->assertCreated()
             ->assertJson([
                 'data' => [
                     'title' => 'My first note',
@@ -51,10 +51,35 @@ class NoteApiTest extends TestCase
             ]);
 
         $response
-            ->assertStatus(422)
+            ->assertUnprocessable()
             ->assertJsonValidationErrors(['title']);
 
         $this->assertDatabaseCount('notes', 0);
+    }
+
+    public function test_user_cannot_update_note_without_title(): void
+    {
+        $user = User::factory()->create();
+
+        $note = Note::factory()
+            ->for($user)
+            ->create();
+
+        $response = $this
+            ->actingAs($user, 'sanctum')
+            ->patchJson("/api/notes/{$note->id}", [
+                'body' => 'Updated body but no title',
+            ]);
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['title']);
+
+        $this->assertDatabaseHas('notes', [
+            'id' => $note->id,
+            'title' => $note->title,
+            'body' => $note->body,
+        ]);
     }
 
     public function test_user_can_create_note_without_body(): void
@@ -66,7 +91,7 @@ class NoteApiTest extends TestCase
                 'title' => 'Note with no body',
             ]);
 
-        $response->assertStatus(201);
+        $response->assertCreated();
 
         $this->assertDatabaseHas('notes', [
             'title' => 'Note with no body',
@@ -114,7 +139,7 @@ class NoteApiTest extends TestCase
             ]);
 
         $response
-            ->assertStatus(200)
+            ->assertOk()
             ->assertJson([
                 'data' => [
                     'title' => 'Updated title',
@@ -243,6 +268,44 @@ class NoteApiTest extends TestCase
             ->assertJsonCount(0, 'data');
     }
 
+    public function test_archived_notes_are_not_listed(): void
+    {
+        $user = User::factory()->create();
+
+        Note::factory()->for($user)->create(['archived' => false]);
+        Note::factory()->for($user)->create(['archived' => true]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/notes');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data');
+    }
+
+    public function test_archiving_already_archived_note_is_safe(): void
+    {
+        $user = User::factory()->create();
+
+        $note = Note::factory()
+            ->for($user)
+            ->create([
+                'archived' => true,
+            ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->postJson("/api/notes/{$note->id}/archive");
+
+        $response->assertOk()
+            ->assertJson([
+                'data' => [
+                    'id' => $note->id,
+                    'archived' => true,
+                ],
+            ]);
+
+        $this->assertTrue($note->refresh()->archived);
+    }
+
     public function test_guests_cannot_interact_with_notes(): void
     {
         $response = $this->getJson('/api/notes');
@@ -264,8 +327,79 @@ class NoteApiTest extends TestCase
                 'body' => 'Valid body',
             ]);
 
-        $response->assertStatus(422)
+        $response
+            ->assertUnprocessable()
             ->assertJsonValidationErrors(['title']);
 
+    }
+
+    public function test_update_title_too_long_fails(): void
+    {
+        $user = User::factory()->create();
+
+        $note = Note::factory()
+            ->for($user)
+            ->create();
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->patchJson("/api/notes/{$note->id}", [
+                'title' => str_repeat('a', 256),
+            ]);
+
+        $response
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['title']);
+    }
+
+    public function test_user_can_filter_archived_notes(): void
+    {
+        $user = User::factory()->create();
+
+        Note::factory()->for($user)->create(['archived' => false]);
+        Note::factory()->for($user)->create(['archived' => true]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/notes?archived=1');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.archived', true);
+    }
+
+    public function test_user_can_search_notes(): void
+    {
+        $user = User::factory()->create();
+
+        Note::factory()->for($user)->create(['title' => 'Laravel notes']);
+        Note::factory()->for($user)->create(['title' => 'API']);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/notes?search=Laravel');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.title', 'Laravel notes');
+    }
+
+    public function test_user_can_combine_filters(): void
+    {
+        $user = User::factory()->create();
+
+        Note::factory()->for($user)->create([
+            'title' => 'Laravel archived',
+            'archived' => true,
+        ]);
+
+        Note::factory()->for($user)->create([
+            'title' => 'Laravel active',
+            'archived' => false,
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')
+            ->getJson('/api/notes?archived=1&search=Laravel');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.archived', true);
     }
 }
